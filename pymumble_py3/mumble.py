@@ -124,6 +124,13 @@ class Mumble(threading.Thread):
 
             time.sleep(PYMUMBLE_CONNECTION_RETRY_INTERVAL)
 
+
+        if (self.connect() == PYMUMBLE_CONN_STATE_NOT_CONNECTED) or (self.connect() == PYMUMBLE_CONN_STATE_FAILED) :
+            self.callbacks(PYMUMBLE_CLBK_DISCONNECTED)
+
+
+
+
     def connect(self):
         """Connect to the server"""
 
@@ -294,7 +301,8 @@ class Mumble(threading.Thread):
             self.Log.debug("message: reject : %s", mess)
             self.connected = PYMUMBLE_CONN_STATE_FAILED
             self.ready_lock.release()
-            raise ConnectionRejectedError(mess.reason)
+            self.callbacks(PYMUMBLE_CLBK_DISCONNECTED)
+            #raise ConnectionRejectedError(mess.reason)
 
         elif type == PYMUMBLE_MSG_TYPES_SERVERSYNC:  # this message finish the connection process
             mess = mumble_pb2.ServerSync()
@@ -306,8 +314,8 @@ class Mumble(threading.Thread):
 
             if self.connected == PYMUMBLE_CONN_STATE_AUTHENTICATING:
                 self.connected = PYMUMBLE_CONN_STATE_CONNECTED
-                self.callbacks(PYMUMBLE_CLBK_CONNECTED)
                 self.ready_lock.release()  # release the ready-lock
+                self.callbacks(PYMUMBLE_CLBK_CONNECTED)
 
         elif type == PYMUMBLE_MSG_TYPES_CHANNELREMOVE:
             mess = mumble_pb2.ChannelRemove()
